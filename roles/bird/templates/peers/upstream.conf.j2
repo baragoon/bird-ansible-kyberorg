@@ -1,0 +1,53 @@
+#jinja2:lstrip_blocks: True
+{% if item.protocol == 'v4' %}{% set proto = '4' %}{% else %}{% set proto = '6' %}{% endif %}
+protocol bgp up_{{ item.name }}_{{ item.protocol }} {
+    description "{{ item.description }}";
+    graceful restart on;
+    graceful restart time 0;
+#    bfd graceful;
+    startup hold time 240;
+    {% if item.multihop is defined %}
+    multihop {{ item.multihop }};
+    {% endif %}
+    {% if item.set_multihop is defined %}
+    multihop;
+    {% endif %}
+    {% if item.password is defined %}
+    password "{{ item.password }}";
+    {% endif %}
+    local {{ item.local.ip }} as {{ inet_asn }};
+    neighbor {{ item.neighbor.ip }} as {{ item.neighbor.asn }};
+    default bgp_local_pref {{ item.bgp_local_pref | default(100) }};
+#    debug all;
+
+    ip{{ item.protocol }} {
+        import keep filtered;
+        import table;
+        import filter {
+            {% if item.allow_default_route | default(False) %}
+            accept_default_route();
+            {% endif %}
+            reject_bogon_route();
+            reject_too_long_aspath();
+            reject_out_of_bound_route();
+            reject_invalid_rpki(CHECK_TYPE_SOFT);
+            clean_own_communities();
+            add_source_community(50, {{ item.neighbor.asn }});
+            honour_graceful_shutdown();
+            accept;
+        };
+        export filter {
+            reject_route_with_global_noexport_community();
+            reject_route_with_noexport_community({{ item.neighbor.asn }});
+            reject_host_only_routes();
+            reject_bogon_route();
+            reject_too_long_aspath();
+            reject_out_of_bound_route();
+            remove_private_asn(TYPE_INET);
+            handle_prepend({{ item.neighbor.asn }});
+            accept_own_routes();
+            accept_downstream_routes();
+            reject;
+        };
+    };
+}

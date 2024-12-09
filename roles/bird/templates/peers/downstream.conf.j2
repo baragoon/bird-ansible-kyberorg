@@ -1,0 +1,90 @@
+{% if item.protocol == 'v4' %}{% set proto = '4' %}{% else %}{% set proto = '6' %}{% endif %}
+{% set prefix_set_name = "BYPASS" + proto + "_AS" + item.neighbor.asn|string + "_BYPASS_IP" %}
+{% if item.bypass_prefixes is defined %}{% set bypass_prefixes = item.bypass_prefixes %}{% else %}{% set bypass_prefixes = [] %}{% endif %}
+
+define {{ prefix_set_name }} = [ {{ bypass_prefixes | join(',') }} ];
+
+{% if item.export_type == 'full' %}
+    {% set export_typ = 'EXPORT_TYPE_FULL' %}
+{% elif item.export_type == 'default' %}
+    {% set export_typ = 'EXPORT_TYPE_DEFAULT' %}
+{% else %}
+    {% set export_typ = 'EXPORT_TYPE_NOROUTE' %}
+{% endif %}
+
+protocol bgp da_{{ item.name }}_{{ item.protocol }} {
+    description "{{ item.description }}";
+
+    {% if item.multihop is defined %}
+    multihop {{ item.multihop }};
+    {% endif %}
+    {% if item.set_multihop is defined %}
+    multihop;
+    {% endif %}
+
+    {% if item.password is defined %}
+    password "{{ item.password }}";
+    {% endif %}
+
+    graceful restart on;
+    graceful restart time 0;
+#    bfd graceful;
+    startup hold time 240;
+
+#    debug all;
+
+    local {{ item.local.ip }} as {{ item.local.asn }};
+    neighbor {{ item.neighbor.ip }} as {{ item.neighbor.asn }};
+
+    default bgp_local_pref {{ item.bgp_local_pref | default(444) }};
+
+    ip{{ item.protocol }} {
+        import keep filtered;
+        import table;
+
+        import filter {
+            reject_bogon_route();
+            reject_too_long_aspath();
+            reject_out_of_bound_route();
+            reject_route_with_global_noexport_community();
+
+            enforce_first_as({{ item.neighbor.asn }});
+            enforce_peer_nexthop({{ item.neighbor.ip }});
+            #process_blackholes();
+            honour_graceful_shutdown();
+            clean_own_communities();
+            add_source_community(SRC_DOWNSTREAM, {{ item.neighbor.asn }});
+
+            {% if bypass_prefixes | length > 0 %}
+            accept_allowed_routes_without_rpki({{ prefix_set_name }});
+            {% endif %}
+            reject_invalid_rpki(CHECK_TYPE_STRICT);
+            {% if not item.paid_transit | default(False) %}
+            set_no_export_to_paid_upstreams();
+            {% endif %}
+
+            _accept("Valid route from downstream");
+        };
+        {% if item.export_type == 'none' %}
+        export none;
+        {% elif item.export_type == 'default' %}
+        export filter {
+            if (proto = "inet_default_{{item.protocol}}") then accept; else reject;
+        };
+        {% else %}
+        export filter {
+            reject_host_only_routes();
+            reject_route_with_global_noexport_community();
+            reject_route_with_noexport_community({{ item.neighbor.asn }});
+            reject_bogon_route();
+            reject_too_long_aspath();
+            reject_out_of_bound_route();
+
+            remove_private_asn(TYPE_INET);
+            handle_prepend({{ item.neighbor.asn }});
+
+            accept;
+        };
+        {% endif %}
+    };
+}

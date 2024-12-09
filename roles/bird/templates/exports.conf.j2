@@ -1,0 +1,222 @@
+# Hardcoded routes
+protocol static hardcoded_routes_v4 {
+    ipv4 {};
+    # GRE
+    {% for peer in gre_tunnels %}
+    {% if peer.is_klab | default(false) %}
+    route {{ peer.remote_ip }}/32 via {{ inet4_gateway }};
+    {% endif %}
+    {% endfor %}
+
+    # Other routes
+    {% for route in hardcoded_routes4 %}
+    route {{ route.net }} via {% if route.gw is defined %}{{ route.gw }}{% else %}{{ inet4_gateway }}{% endif %};
+    {% endfor %}
+}
+
+protocol static hardcoded_routes_v6 {
+    ipv6 {};
+    {% for route in hardcoded_routes6 %}
+    route {{ route.net }} {% if route.gw is defined %} via {{ route.gw }}{% if route.gw.startswith('fe80') %}%{{ route.dev }}{% endif %}{% endif %};
+    {% endfor %}
+}
+
+# KLab Non-Aggregated (Host-only) routes
+protocol static host_only_routes_v4 {
+    ipv4 {};
+    {% for route in klab_host_only_routes4 %}
+    route {{ route.net }} via {{ route.gw }} {};
+    {% endfor %}
+}
+
+protocol static host_only_routes_v6 {
+     ipv6 {};
+    {% for route in klab_host_only_routes6 %}
+    route {{ route.net }} via {{ route.gw }} {};
+    {% endfor %}
+}
+
+# KLab Aggregated (for iBGP) routes
+protocol static ibgp_routes_v4 {
+    ipv4 {};
+    {% for route in klab_ibgp_routes4 %}
+    {% if route.asn == inet_asn %}
+    route {{ route.net }} via "{{ route.dev }}" {
+        {% if two_byte_asn %}
+        bgp_community.add((INET_ASN, {{ inet_location_comm }}));
+        bgp_community.add((INET_ASN, INFO_OWN));
+        {% else %}
+        bgp_large_community.add((INET_ASN, INFO_OWN, INET_ASN));  
+        {% endif %}
+    };
+    {% endif %}
+    {% endfor %}
+}
+protocol static ibgp_routes_v6 {
+    ipv6 {};
+    {% for route in klab_ibgp_routes6 %}
+    {% if route.asn == inet_asn %}
+    route {{ route.net }} via "{{ route.dev }}" {
+        {% if two_byte_asn %}
+        bgp_community.add((INET_ASN, {{ inet_location_comm }}));
+        bgp_community.add((INET_ASN, INFO_OWN));
+        {% else %}
+        bgp_large_community.add((INET_ASN, INFO_OWN, INET_ASN));  
+        {% endif %}
+    };
+    {% endif %}
+    {% endfor %}
+}
+
+# Inet
+protocol static inet_node_v4 {
+    ipv4 {};
+
+    {% for route in inet_node_routes4 %}
+    {% if route.asn == inet_asn %}
+    route {{ route.net }} via "{{ route.dev }}" {
+    {% if two_byte_asn %}
+    bgp_community.add((INET_ASN, {{ inet_location_comm }}));
+    bgp_community.add((INET_ASN, INFO_OWN));
+    {% else %}
+    bgp_large_community.add((INET_ASN, INFO_OWN, INET_ASN));  
+    {% endif %}
+
+    {% if route.bgp_communities is defined and two_byte_asn %}
+    {% for c in route.bgp_communities %}
+        bgp_community.add({{c}});
+    {% endfor %}
+    {% endif %}
+    {% if route.bgp_large_communities is defined %}
+    {% for c in route.bgp_large_communities %}
+        bgp_large_community.add({{c}});
+    {% endfor %}
+    {% endif %}
+    };
+    {% endif %}
+    {% endfor %}
+}
+
+protocol static inet_node_v6 {
+    ipv6 {};
+
+    {% for route in inet_node_routes6 %}
+    {% if route.asn == inet_asn %}
+    route {{ route.net }} via "{{ route.dev }}" {
+
+    {% if two_byte_asn %}
+    bgp_community.add((INET_ASN, {{ inet_location_comm }}));
+    bgp_community.add((INET_ASN, INFO_OWN));
+    {% else %}
+    bgp_large_community.add((INET_ASN, INFO_OWN, INET_ASN));  
+    {% endif %}
+
+    {% if route.bgp_communities is defined and two_byte_asn %}
+    {% for c in route.bgp_communities %}
+        bgp_community.add({{c}});
+    {% endfor %}
+    {% endif %}
+    {% if route.bgp_large_communities is defined %}
+    {% for c in route.bgp_large_communities %}
+        bgp_large_community.add({{c}});
+    {% endfor %}
+    {% endif %}
+    };
+    {% endif %}
+    {% endfor %}
+}
+
+protocol static inet_v4_anycast {
+    ipv4 {};
+
+    {% for route in inet_anycast4 %}
+    {% if route.asn == inet_asn %}
+    route {{ route.net }} via "{{ route.dev }}" {
+
+    {% if two_byte_asn %}
+    bgp_community.add((INET_ASN, GEO_ANY));
+    bgp_community.add((INET_ASN, INFO_OWN));
+    {% else %}
+    bgp_large_community.add((INET_ASN, INFO_OWN, INET_ASN));  
+    {% endif %}
+
+    {% if route.bgp_communities is defined and two_byte_asn %}
+    {% for c in route.bgp_communities %}
+        bgp_community.add({{c}});
+    {% endfor %}
+    {% endif %}
+    {% if route.bgp_large_communities is defined %}
+    {% for c in route.bgp_large_communities %}
+        bgp_large_community.add({{c}});
+    {% endfor %}
+    {% endif %}
+    };
+    {% endif %}
+    {% endfor %}
+}
+
+protocol static inet_v6_anycast {
+    ipv6 {};
+    {% for route in inet_anycast6 %}
+    {% if route.asn == inet_asn %}
+    route {{ route.net }} via "{{ route.dev }}" {
+
+    {% if two_byte_asn %}
+    bgp_community.add((INET_ASN, GEO_ANY));
+    bgp_community.add((INET_ASN, INFO_OWN));
+    {% else %}
+    bgp_large_community.add((INET_ASN, INFO_OWN, INET_ASN));  
+    {% endif %}
+
+    {% if route.bgp_communities is defined and two_byte_asn %}
+    {% for c in route.bgp_communities %}
+        bgp_community.add({{c}});
+    {% endfor %}
+    {% endif %}
+    {% if route.bgp_large_communities is defined %}
+    {% for c in route.bgp_large_communities %}
+        bgp_large_community.add({{c}});
+    {% endfor %}
+    {% endif %}
+    };
+    {% endif %}
+    {% endfor %}
+}
+
+{% if bird_inet_default_route %}
+protocol static inet_default_v4 {
+    ipv4 {};
+    check link;
+    route 0.0.0.0/0 reject;
+}
+
+protocol static inet_default_v6 {
+    ipv6 {};
+    route ::/0 reject;
+}
+{% endif %}
+
+# DN42
+protocol static dn42_node_v4 {
+    ipv4 {};
+    route {{ dn42_node_routes4 }} reject;
+}
+
+protocol static dn42_node_v6 {
+    ipv6 {};
+    route {{ dn42_node_routes6 }} reject;
+}
+
+protocol static dn42_v4_anycast {
+    ipv4 {};
+    {% for route in dn42_anycast4 %}
+    route {{ route.net }} via "{{ route.dev }}";
+    {% endfor %}
+}
+
+protocol static dn42_v6_anycast {
+    ipv6 {};
+    {% for route in dn42_anycast6 %}
+    route {{ route.net }} via "{{ route.dev }}";
+    {% endfor %}
+}

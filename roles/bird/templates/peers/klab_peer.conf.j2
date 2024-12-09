@@ -1,0 +1,64 @@
+{% if item.protocol == 'v4' %}{% set proto = '4' %}{% else %}{% set proto = '6' %}{% endif %}
+protocol bgp klab_{{ item.name }}_{{ item.protocol }} {
+    description "{{ item.description }}";
+
+    graceful restart on;
+    graceful restart time 0;
+    bfd graceful;
+    startup hold time 240;
+
+    {% if item.multihop is defined %}
+    multihop {{ item.multihop }};
+    {% else %}
+    direct;
+    {% endif %}
+
+    local {{ item.local.ip }} as {{ item.local.asn }};
+    neighbor {{ item.neighbor.ip }} as {{ item.neighbor.asn }};
+
+    default bgp_local_pref {{ item.bgp_local_pref | default(777) }};
+
+#    debug all;
+
+    ip{{ item.protocol }} {
+        gateway direct;
+        next hop self;
+        import keep filtered;
+        import table;
+
+        import filter {
+            reject_host_only_routes();
+            accept_ibgp_routes();
+            accept_downstream_routes();
+
+            {% if item.receive_default | default(False) %}
+            accept_default_route();
+            {% endif %}
+            {% if item.receive_peer_routes | default(False) %}
+            accept_peer_routes();
+            {% endif %}
+            {% if item.receive_ft | default(False) %}
+            accept; # accept full table
+            {% else %}
+            reject; # reject full table
+            {% endif %}
+        };
+        export filter {
+            reject_host_only_routes();
+            accept_ibgp_routes();
+            accept_downstream_routes();
+
+            {% if item.send_default | default(False) %}
+            send_default_route({{proto}});
+            {% endif %}
+            {% if item.send_peer_routes | default(False) %}
+            send_peer_routes();
+            {% endif %}
+            {% if item.send_ft | default(False) %}
+            accept; # accept full table
+            {% else %}
+            reject; # reject full table
+            {% endif %}
+        };
+    };
+}

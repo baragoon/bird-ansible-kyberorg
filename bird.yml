@@ -1,0 +1,17 @@
+---
+- name: Creates and configures BGP with Bird
+  hosts: all
+  serial: 1
+  gather_facts: yes
+  any_errors_fatal: false
+  vars_files: ../secrets.yml
+  pre_tasks:
+    - name: Assert that host has bird_dir
+      assert:
+        that:
+          - bird_dir is defined
+        msg:
+          - "Looks like Bird Dir is missed for host. Please define 'bird_dir' at host_vars."
+
+  roles:
+    - bird

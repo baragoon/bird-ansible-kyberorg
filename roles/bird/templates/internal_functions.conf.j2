@@ -1,0 +1,157 @@
+# Info functions
+function is_valid_net(int as_type) {% if new_bird %}-> bool{% endif %} {
+    if net.type = NET_IP4 then {
+        if (as_type = TYPE_DN42) then return net ~ DN42_IPV4_VALID;
+        if (as_type = TYPE_INET) then return !(net ~ INET_IPV4_BOGON);
+        return false;
+    } else {
+        if (as_type = TYPE_DN42) then return net ~ DN42_IPV6_VALID;
+        if (as_type = TYPE_INET) then return !(net ~ INET_IPV6_BOGON);
+        return false;
+    }
+}
+
+function is_default_route(int as_type) {% if new_bird %}-> bool{% endif %} {
+    if net.type = NET_IP4 then {
+        if (as_type = TYPE_DN42) then return net = 172.20.0.0/14;
+        if (as_type = TYPE_INET) then return net = 0.0.0.0/0;
+        return false;
+    } else {
+        if (as_type = TYPE_DN42) then return net = fd00::/8;
+        if (as_type = TYPE_INET) then return net = ::/0;
+        return false;
+    }
+}
+
+# Type Check
+function as_type() {% if new_bird %}-> int{% endif %} {
+    if (is_valid_net(TYPE_DN42) || is_default_route(TYPE_DN42)) then return TYPE_DN42;
+    if (is_valid_net(TYPE_INET) || is_default_route(TYPE_INET)) then return TYPE_INET;
+    return TYPE_INVALID;
+}
+
+function my_asn() {% if new_bird %}-> int{% endif %} {
+    int as_type = as_type();
+    if (as_type = TYPE_DN42) then return DN42_ASN;
+    if (as_type = TYPE_INET) then return INET_ASN;
+    return 0;
+}
+
+# More Info functions
+function is_anycast() {% if new_bird %}-> bool{% endif %} {
+    if (net.type = NET_IP4) then {
+        return proto = "dn42_v4_anycast" ||
+               proto = "inet_v4_anycast";
+    } else {
+         return proto = "dn42_v6_anycast" ||
+               proto = "inet_v6_anycast";
+    }
+}
+
+function is_downstream_route() {% if new_bird %}-> bool{% endif %} {
+    {% if two_byte_asn %}
+    return bgp_community.len > 0 && (my_asn(), INFO_DOWNSTREAM) ~ bgp_community;
+    {% else %}
+    return bgp_large_community.len > 0 && (my_asn(), INFO_DOWNSTREAM, INFO_DOWNSTREAM) ~ bgp_large_community;
+    {% endif %}
+}
+
+function is_own_route() {% if new_bird %}-> bool{% endif %} {
+    {% if two_byte_asn %}
+    return bgp_community.len > 0 && (my_asn(), INFO_OWN) ~ bgp_community;
+    {% else %}
+    return bgp_large_community.len > 0 && (my_asn(), INFO_OWN, my_asn()) ~ bgp_large_community;
+    {% endif %}
+}
+
+function is_peer_route() {% if new_bird %}-> bool{% endif %} {
+    {% if two_byte_asn %}
+    return bgp_community.len > 0 && (my_asn(), INFO_PEER) ~ bgp_community;
+    {% else %}
+    return bgp_large_community.len > 0 && (my_asn(), INFO_PEER, INFO_PEER) ~ bgp_large_community;
+    {% endif %}
+}
+
+## Util functions
+function get_bogon_asn(int as_type) {% if new_bird %}-> int set{% endif %} {
+    if (as_type = TYPE_DN42) then return DN42_ASN_BOGON;
+    if (as_type = TYPE_INET) then return INET_ASN_BOGON;
+    return LOCAL_AS_SET;
+}
+
+function bad_asn_len(int as_type) {% if new_bird %}-> bool{% endif %} {
+    if (as_type = TYPE_DN42) then return bgp_path.len > 42;
+    if (as_type = TYPE_INET) then return bgp_path.len > 50;
+    return false;
+}
+
+function is_aggregated_route() {% if new_bird %}-> bool{% endif %} {
+    return proto ~ "inet_*" || proto ~ "ibgp_routes_*";
+}
+
+function is_host_only_route() {% if new_bird %}-> bool{% endif %} {
+    return proto ~ "host_only_routes_*";
+}
+
+function is_bogon_net(int as_typ) {% if new_bird %}-> bool{% endif %} {
+    return !is_valid_net(as_typ);
+}
+
+function bad_prefix_len(int as_typ) {% if new_bird %}-> bool{% endif %} {
+    if (as_typ = TYPE_DN42) then {
+        if (net.type = NET_IP4) then return net.len > 32;
+        if (net.type = NET_IP6) then return net.len > 64;
+        return false;
+    }
+    if (as_typ = TYPE_INET) then {
+        if (net.type = NET_IP4) then return net.len > 24;
+        if (net.type = NET_IP6) then return net.len > 48;
+        return false;
+    }
+    return false;
+}
+
+function rpki_soft_check_failed(int as_type) {% if new_bird %}-> bool{% endif %} {
+    if (as_type = TYPE_DN42) then return dn42_rpki_soft_check_failed();
+    if (as_type = TYPE_INET) then return inet_rpki_soft_check_failed();
+    return false;
+}
+
+function rpki_strict_check_failed(int as_type) {% if new_bird %}-> bool{% endif %} {
+    if (as_type = TYPE_DN42) then return dn42_rpki_strict_check_failed();
+    if (as_type = TYPE_INET) then return inet_rpki_strict_check_failed();
+    return false;
+}
+
+# Actions functions
+function remove_private_asn(int as_type) {
+    bgp_path.delete(get_bogon_asn(as_type));
+}
+
+function clean_own_communities() {
+    int my_asn = my_asn();
+    bgp_large_community.delete([(my_asn, *, *)]);
+}
+
+function honour_graceful_shutdown() {
+    # RFC 8326: Graceful BGP Session Shutdown
+    if (65535, 0) ~ bgp_community then bgp_local_pref = 0;
+}
+
+function handle_prepend(int dest_asn) {
+    int my_asn = my_asn();
+    if (my_asn, 1, dest_asn) ~ bgp_large_community then {
+        bgp_path.prepend(my_asn);
+    }
+
+    if (my_asn, 2, dest_asn) ~ bgp_large_community then {
+        bgp_path.prepend(my_asn);
+        bgp_path.prepend(my_asn);
+    }
+
+    if (my_asn, 3, dest_asn) ~ bgp_large_community then {
+        bgp_path.prepend(my_asn);
+        bgp_path.prepend(my_asn);
+        bgp_path.prepend(my_asn);
+    }
+}

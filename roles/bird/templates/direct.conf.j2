@@ -1,0 +1,7 @@
+protocol direct {
+   ipv4;
+   ipv6;
+   {% if bird_devices | length > 0 %} 
+   interface "{{ bird_devices | join('", "') }}";
+   {% endif %}
+}

@@ -1,0 +1,19 @@
+[Match]
+Name=wg_{{ item.name }}
+
+[Network]
+DHCP=no
+IPv6AcceptRA=false
+IPForward=yes
+{% if item.wg_peer_ipv6 is defined %}
+
+[Address]
+Address={{ item.wg_interface_ipv6 }}
+Peer={{ item.wg_peer_ipv6 }}
+{% endif %}
+{% if item.wg_peer_ipv4 is defined %}
+
+[Address]
+Address={{ item.wg_interface_ipv4 }}
+Peer={{ item.wg_peer_ipv4 }}
+{% endif %}

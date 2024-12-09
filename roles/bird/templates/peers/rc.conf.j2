@@ -1,0 +1,38 @@
+{% if item.protocol == 'v4' %}{% set proto = '4' %}{% else %}{% set proto = '6' %}{% endif %}
+protocol bgp rc_{{ item.name }}_{{ item.protocol }} {
+    description "{{ item.description }}";
+
+    graceful restart on;
+    graceful restart time 0;
+#    bfd graceful;
+    startup hold time 240;
+
+    {% if item.multihop is defined %}
+    multihop {{ item.multihop }};
+    {% endif %}
+    {% if item.set_multihop is defined %}
+    multihop;
+    {% endif %}
+
+#    debug all;
+
+    local {{ item.local.ip }} as {{ item.local.asn }};
+    neighbor {{ item.neighbor.ip }} as {{ item.neighbor.asn }};
+
+    default bgp_local_pref {{ item.bgp_local_pref | default(100) }};
+
+    ip{{ item.protocol }} {
+        import none;
+        export filter {
+            reject_host_only_routes();
+            reject_route_with_noexport_community({{ item.neighbor.asn }});
+            reject_bogon_route();
+            reject_too_long_aspath();
+            reject_out_of_bound_route();
+
+            remove_private_asn(TYPE_INET);
+
+            accept;
+        };
+    };
+}

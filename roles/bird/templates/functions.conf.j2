@@ -1,0 +1,143 @@
+# Accept/Reject wrappers
+function _reject(string msg) {
+    {% if new_bird %}
+    int asn;
+    if (bgp_path.last = 0) then {
+        asn = my_asn();
+    } else {
+        asn = bgp_path.last;
+    }
+    reject "[Route REJECTED](",proto,") ASN ", asn, " Prefix ", net, ". Reason: ", msg;
+    {% else %}
+    reject "[Route REJECTED](",proto,") ASN ", bgp_path.last, " Prefix ", net, ". Reason: ", msg;
+    {% endif %}
+}
+
+function _accept(string msg) {
+    {% if new_bird %}
+    int asn;
+    if (bgp_path.last = 0) then {
+        asn = my_asn();
+    } else {
+        asn = bgp_path.last;
+    }
+    accept "[Route ACCEPTED](",proto,") ASN ", asn, " Prefix ", net, " Reason: ", msg;
+    {% else %}
+    accept "[Route ACCEPTED](",proto,") ASN ", bgp_path.last, " Prefix ", net, " Reason: ", msg;
+    {% endif %}
+}
+
+# Filtering functions
+function accept_default_route() {
+    if is_default_route(as_type()) then _accept("Default route");
+}
+
+function accept_downstream_routes() {
+    if is_downstream_route() then _accept("Downstream route");
+}
+
+function accept_peer_routes() {
+    if is_peer_route() then _accept("Peer route");
+}
+
+function accept_own_routes() {
+    if is_own_route() then _accept("Own route");
+}
+
+function accept_allowed_routes_without_rpki(prefix set bypass_prefixes) {
+    if net ~ bypass_prefixes then _accept("Whitelisted prefix without valid RPKI");
+}
+
+function reject_bogon_route() {
+    if is_bogon_net(as_type()) then _reject("Bogon route");
+}
+
+function reject_too_long_aspath() {
+    if bad_asn_len(as_type()) then _reject("AS path is way too long");
+}
+
+function reject_out_of_bound_route() {
+    if bad_prefix_len(as_type()) then _reject("Prefix has invalid length");
+}
+
+function reject_invalid_rpki(int check_type) {
+    if (check_type = CHECK_TYPE_SOFT) then {
+        if rpki_soft_check_failed(as_type()) then _reject("Invalid RPKI");
+    } else if (check_type = CHECK_TYPE_STRICT) then {
+        if rpki_strict_check_failed(as_type()) then _reject("Invalid or not found RPKI");
+    } else {
+        print "No such check type: ", check_type, " defined. Check check your constants."; 
+    }
+}
+
+function reject_route_with_noexport_community(int peer_asn) {
+    if (peer_asn = 20473) then peer_asn = 64515; # Vultr fix
+    if (INET_ASN, ACTION_NO_EXPORT, peer_asn) ~ bgp_large_community then _reject("no export community");
+}
+function reject_route_with_global_noexport_community() {
+    {% if two_byte_asn %}
+    if (INET_ASN, ACTION_NO_EXPORT) ~ bgp_community then _reject("Global no export community");
+    {% else %}
+    if (INET_ASN, ACTION_NO_EXPORT, ACTION_NO_EXPORT) ~ bgp_large_community then _reject("Global no export community");
+    {% endif %}
+}
+
+function reject_host_only_routes() {
+    if is_host_only_route() then _reject("Host-only non-argregated route");
+}
+
+# community functions
+function add_source_community(int route_source; int peer_asn) {
+    int community = 0;
+    case route_source {
+        20: community = INFO_DOWNSTREAM;
+        30: community = INFO_PEER;
+        40: community = INFO_IXP_RS;
+        50: community = INFO_UPSTREAM;
+        else: community = 0;
+    }
+    if community = 0 then {
+        print "No such source: ", route_source, " defined. Check check your constants.";
+    } else {
+        int my_asn = my_asn();
+        {% if two_byte_asn %}
+        bgp_community.add((my_asn, community));
+        {% endif %}
+        bgp_large_community.add((my_asn, community, peer_asn));
+        {% if not two_byte_asn %}
+        bgp_large_community.add((my_asn, community, community));
+        {% endif %}
+    }
+}
+
+function add_ixp_info_community(int ixp_id) {
+    bgp_large_community.add((my_asn(), INFO_IXP_RS, ixp_id));
+}
+
+function enforce_first_as(int peer_asn) {
+  if (bgp_path.first != peer_asn) then _reject("invalid first AS");
+}
+ 
+function enforce_peer_nexthop(ip addr) {
+  if (bgp_next_hop != addr) then _reject("nexthop doesn't match neighbor address");
+}
+
+function set_no_export_to_paid_upstreams() {
+    bgp_large_community.add((my_asn(), ACTION_NO_EXPORT, 64515)); # No export to Vultr
+}
+
+function send_default_route(int prot) {
+    case prot {
+        4: if (proto = "default4") then accept;
+        6: if (proto = "default6") then accept;
+        else: print "function send_default_route() received wrong protocol version ", prot;
+    }
+}
+
+function send_peer_routes() {
+    if is_peer_route() then _accept("Sending Peer route");
+}
+
+function dn42_self_net() {
+  if net ~ {{ dn42_node_routes4 }} || net ~ {{ dn42_node_routes6 }} then accept;
+}

@@ -1,0 +1,201 @@
+- name: Configure inet wireguard tunnels netdev files
+  template:
+    src: inet_wg.netdev.j2
+    dest: "/etc/systemd/network/{{ item.name }}.netdev"
+    owner: root
+    group: systemd-network
+    mode: '0640'
+  loop: "{{ inet_wg_tunnels }}"
+  notify: Restart systemd-networkd
+
+- name: Configure inet wireguard tunnels network files
+  template:
+    src: inet_wg.network.j2
+    dest: "/etc/systemd/network/{{ item.name }}.network"
+  loop: "{{ inet_wg_tunnels }}"
+  notify: Restart systemd-networkd
+
+- name: Configure inet sit tunnels netdev files
+  template:
+    src: inet_sit.netdev.j2
+    dest: "/etc/systemd/network/{{ item.name }}.netdev"
+    owner: root
+    group: systemd-network
+    mode: '0640'
+  loop: "{{ inet_sit_tunnels }}"
+  notify: Restart systemd-networkd
+
+- name: Configure inet sit tunnels network files
+  template:
+    src: inet_sit.network.j2
+    dest: "/etc/systemd/network/{{ item.name }}.network"
+  loop: "{{ inet_sit_tunnels }}"
+  notify: Restart systemd-networkd
+
+- name: Configure dn42 wireguard tunnels netdev files
+  template:
+    src: dn42_wg.netdev.j2
+    dest: "/etc/systemd/network/{{ item.name }}.netdev"
+    owner: root
+    group: systemd-network
+    mode: '0640'
+  loop: "{{ dn42_wg_tunnels }}"
+  notify: Restart systemd-networkd
+
+- name: Configure dn42 wireguard tunnels network files
+  template:
+    src: dn42_wg.network.j2
+    dest: "/etc/systemd/network/{{ item.name }}.network"
+  loop: "{{ dn42_wg_tunnels }}"
+  notify: Restart systemd-networkd
+
+- name: Create main config
+  template:
+    src: bird.conf.j2
+    dest: "{{ bird_main_config }}"
+  notify: Notify Bird about changes
+
+- name: Copy Bogon & Valid config
+  copy:
+    src: bogon_n_valid_list.conf
+    dest: "{{ bird_dir }}/bogon_n_valid_list.conf"
+    backup: False
+  notify: Notify Bird about changes
+
+- name: Copy Comminities Func file
+  copy:
+    src: communities.conf
+    dest: "{{ bird_dir }}/communities.conf"
+  notify: Notify Bird about changes
+
+- name: Internal functions file
+  template:
+    src: internal_functions.conf.j2
+    dest: "{{ bird_dir }}/internal_functions.conf"
+  notify: Notify Bird about changes
+
+- name: Functions file
+  template:
+    src: functions.conf.j2
+    dest: "{{ bird_dir }}/functions.conf"
+  notify: Notify Bird about changes
+
+- name: Download dn42 ROA config for ipv6
+  get_url:
+    url: https://dn42.burble.com/roa/dn42_roa_bird2_6.conf
+    dest: /etc/bird/roa_dn42_v6.conf
+
+- name: Download dn42 ROA config for ipv4
+  get_url:
+    url: https://dn42.burble.com/roa/dn42_roa_bird2_4.conf
+    dest: /etc/bird/roa_dn42.conf
+
+- name: Create systemd unit for dn42 ROA update
+  template:
+    src: dn42-roa.service.j2
+    dest: /etc/systemd/system/dn42-roa.service
+
+- name: Create systemd timer for dn42 ROA update
+  template:
+    src: dn42-roa.timer.j2
+    dest: /etc/systemd/system/dn42-roa.timer
+
+- name: Enable dn42-roa timer
+  systemd_service:
+    name: dn42-roa.timer
+    state: started
+    enabled: true
+
+- name: ROA config
+  template:
+    src: roa.conf.j2
+    dest: "{{ bird_dir }}/roa.conf"
+  notify: Notify Bird about changes
+
+- name: Generate iBGP config
+  template:
+    src: ibgp.conf.j2
+    dest: "{{ bird_dir }}/ibgp.conf"
+  when: has_ibgp_peers
+  notify: Notify Bird about changes
+
+- name: Generate Path0 config
+  template:
+    src: path0.conf.j2
+    dest: "{{ bird_dir }}/path0.conf"
+  when: has_ibgp_peers
+  notify: Notify Bird about changes
+
+- name: Exports config
+  template:
+    src: exports.conf.j2
+    dest: "{{ bird_dir }}/exports.conf"
+  notify: Notify Bird about changes
+
+- name: Generate Direct (devices) file
+  template:
+    src: direct.conf.j2
+    dest: "{{ bird_dir }}/direct.conf"
+  notify: Notify Bird about changes
+
+- name: Generate Kernel file
+  template:
+    src: kernel.conf.j2
+    dest: "{{ bird_dir }}/kernel.conf"
+  notify: Notify Bird about changes
+
+- name: Generate KLab Peer configs
+  template:
+    src: peers/klab_peer.conf.j2
+    dest: "{{ bird_dir }}/peers/klab_{{ item.name }}_{{ item.protocol }}.conf"
+  loop: "{{ klab_peers }}"
+  notify: Notify Bird about changes
+
+- name: Generate Inet upstream configs
+  template:
+    src: peers/upstream.conf.j2
+    dest: "{{ bird_dir }}/peers/up_{{ item.name }}_{{ item.protocol }}.conf"
+  loop: "{{ inet_upstreams }}"
+  notify: Notify Bird about changes
+
+- name: Generate Inet RouteServers (aka RS) configs
+  template:
+    src: peers/rs.conf.j2
+    dest: "{{ bird_dir }}/peers/rs_{{ item.name }}_{{ item.protocol }}.conf"
+  loop: "{{ inet_rs }}"
+  notify: Notify Bird about changes
+
+- name: Generate Peers configs
+  template:
+    src: peers/peer.conf.j2
+    dest: "{{ bird_dir }}/peers/peer_{{ item.name }}_{{ item.protocol }}.conf"
+  loop: "{{ inet_peers }}"
+  notify: Notify Bird about changes
+
+- name: Generate dn42 Peers configs
+  template:
+    src: peers/dn42_peer.conf.j2
+    dest: "{{ bird_dir }}/peers/dn42_peer_{{ item.name }}_{{ item.protocol }}.conf"
+  loop: "{{ dn42_peers }}"
+  notify: Notify Bird about changes
+
+- name: Generate Downstream Automaticnyj (Inet Automatic-fitering downstream) configs
+  template:
+    src: peers/downstream.conf.j2
+    dest: "{{ bird_dir }}/peers/da_{{ item.name }}_{{ item.protocol }}.conf"
+  loop: "{{ inet_downstreams }}"
+  notify: Notify Bird about changes
+
+- name: Generate Downstream Whitelistowyj (Inet Whitestream) configs
+  template:
+    src: peers/whitestream.conf.j2
+    dest: "{{ bird_dir }}/peers/dw_{{ item.name }}_{{ item.protocol }}.conf"
+  loop: "{{ inet_whitestreams }}"
+  notify: Notify Bird about changes
+
+- name: Generate Inet RouteCollectors (aka RC) configs
+  template:
+    src: peers/rc.conf.j2
+    dest: "{{ bird_dir }}/peers/rc_{{ item.name }}_{{ item.protocol }}.conf"
+  loop: "{{ inet_rc }}"
+  notify: Notify Bird about changes

@@ -1,0 +1,47 @@
+{% if item.protocol == 'v4' %}{% set proto = '4' %}{% else %}{% set proto = '6' %}{% endif %}
+{% set prefix_set_name = "DOWN" + proto + "_AS" + item.neighbor.asn|string + "_IP" %}
+{% set as_set_name = "DOWN" + proto + "_AS" + item.neighbor.asn|string + "_ASN" %}
+
+define {{ prefix_set_name }} = [ {{ item.prefixes | join(',') }} ];
+define {{ as_set_name }} = [ {{ item.as_set | join(',') }} ];
+
+{% if item.export_type == 'full' %}
+    {% set export_typ = 'EXPORT_TYPE_FULL' %}
+{% elif item.export_type == 'default' %}
+    {% set export_typ = 'EXPORT_TYPE_DEFAULT' %}
+{% else %}
+    {% set export_typ = 'EXPORT_TYPE_NOROUTE' %}
+{% endif %}
+
+protocol bgp dw_{{ item.name }}_{{ item.protocol }} {
+    description "{{ item.description }}";
+
+    {% if item.multihop is defined %}
+    multihop {{ item.multihop }};
+    {% endif %}
+    {% if item.set_multihop is defined %}
+    multihop;
+    {% endif %}
+    {% if item.password is defined %}
+    password "{{ item.password }}";
+    {% endif %}
+
+    graceful restart on;
+    graceful restart time 0;
+#    bfd graceful;
+    startup hold time 240;
+
+#    debug all;
+
+    local {{ item.local.ip }} as {{ item.local.asn }};
+    neighbor {{ item.neighbor.ip }} as {{ item.neighbor.asn }};
+
+    default bgp_local_pref {{ item.bgp_local_pref | default(333) }};
+
+    ip{{ item.protocol }} {
+        import keep filtered;
+        import table;
+        import where import_downstream({{ item.neighbor.asn }}, {{ prefix_set_name }}, {{ as_set_name }});
+        export where export_to_downstream({{ export_typ }}, {{ item.neighbor.asn }});
+    };
+}

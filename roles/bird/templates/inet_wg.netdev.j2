@@ -1,0 +1,16 @@
+[NetDev]
+Name=wg_{{ item.name }}
+Kind=wireguard
+
+[WireGuard]
+PrivateKey={{ item.wg_interface_priv_key }}
+ListenPort={{ item.wg_interface_port }}
+
+[WireGuardPeer]
+PublicKey={{ item.wg_peer_pub_key }}
+Endpoint={{ item.wg_peer_endpoint }}:{{ item.wg_peer_endpoint_port }}
+AllowedIPs=::/0
+AllowedIPs=0.0.0.0/0
+{% if item.wg_peer_keepalive is defined %}
+PersistentKeepalive={{ item.wg_peer_keepalive }}
+{% endif %}

@@ -1,0 +1,62 @@
+log syslog all;
+
+router id {{ inet4_addr }};
+
+# This is needed in any case - do not remove
+protocol device {
+   scan time 60;
+}
+
+# Networks Types (for functions)
+define TYPE_INET = 1;
+define TYPE_DN42 = 42;
+define TYPE_INVALID = 666;
+
+# Export Types (for downstreams)
+define EXPORT_TYPE_NOROUTE = 10;
+define EXPORT_TYPE_DEFAULT = 11;
+define EXPORT_TYPE_FULL = 12;
+
+# RPKI check types 
+# filter out only invalid
+define CHECK_TYPE_SOFT = 88;
+# allow only valid
+define CHECK_TYPE_STRICT = 123;
+
+# Route sources
+define SRC_DOWNSTREAM = 20;
+define SRC_PEER = 30;
+define SRC_IXP = 40;
+define SRC_UPSTREAM = 50;
+
+# ASN and IP
+define INET_ASN = {{ inet_asn }};
+
+define DN42_ASN = {{ dn42_asn }};
+define DN42_IPV4 = {{ dn42_ip4 }};
+define DN42_IPV6 = {{ dn42_ip6 }};
+
+#attribute int inet_export_to_downstream;
+#attribute int dn42_export_to_downstream;
+
+{% if bird_devices | length > 0 %}
+include "{{ bird_dir }}/direct.conf";
+{% endif %}
+
+include "{{ bird_dir }}/bogon_n_valid_list.conf";
+include "{{ bird_dir }}/roa.conf";
+
+include "{{ bird_dir }}/communities.conf";
+include "{{ bird_dir }}/exports.conf";
+
+include "{{ bird_dir }}/internal_functions.conf";
+include "{{ bird_dir }}/functions.conf";
+
+include "{{ bird_dir }}/kernel.conf";
+
+{% if has_ibgp_peers %}
+include "{{ bird_dir }}/ibgp.conf";
+include "{{ bird_dir }}/path0.conf";
+{% endif %}
+
+include "{{ bird_dir }}/peers/*.conf";

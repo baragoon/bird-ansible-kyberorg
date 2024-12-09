@@ -1,0 +1,94 @@
+{% if has_inet_peers %}
+roa4 table inet_roa4;
+roa6 table inet_roa6;
+
+protocol rpki rpki1 {
+#    debug all;
+    roa4 { table inet_roa4; };
+    roa6 { table inet_roa6; };
+
+    transport tcp;
+    remote "{{ rtr_server }}" port {{ rtr_server_port }};
+
+    retry keep 90;
+    refresh keep 900;
+    expire keep 172800;
+};
+
+# Soft check (filter out only invalid)
+function inet_rpki_soft_check_failed() {% if new_bird %}-> bool{% endif %} {
+    case net.type {
+        NET_IP4: return roa_check(inet_roa4, net, bgp_path.last_nonaggregated) = ROA_INVALID;
+        NET_IP6: return roa_check(inet_roa6, net, bgp_path.last_nonaggregated) = ROA_INVALID;
+        else:    return false;
+    }
+}
+
+# Strict check (valid only)
+function inet_rpki_strict_check_failed() {% if new_bird %}-> bool{% endif %} {
+    case net.type {
+        NET_IP4: return roa_check(inet_roa4, net, bgp_path.last_nonaggregated) != ROA_VALID;
+        NET_IP6: return roa_check(inet_roa6, net, bgp_path.last_nonaggregated) != ROA_VALID;
+        else:    return true; # unknown net.type
+    }
+}
+
+{% else %}
+
+function inet_rpki_soft_check_failed() {% if new_bird %}-> bool{% endif %} {
+    # No external routes - no check needed
+    return false;
+}
+
+function inet_rpki_strict_check_failed() {% if new_bird %}-> bool{% endif %} {
+    # No external routes - bypassing check
+    return true;
+}
+
+{% endif %}
+
+{% if has_dn42_peers %}
+roa4 table dn42_roa4;
+roa6 table dn42_roa6;
+
+protocol static {
+    roa4 { table dn42_roa4; };
+    include "/etc/bird/roa_dn42.conf";
+};
+
+protocol static {
+    roa6 { table dn42_roa6; };
+    include "/etc/bird/roa_dn42_v6.conf";
+};
+
+# Soft check (filter out only invalid)
+function dn42_rpki_soft_check_failed() {% if new_bird %}-> bool{% endif %} {
+    case net.type {
+        NET_IP4: return roa_check(dn42_roa4, net, bgp_path.last_nonaggregated) = ROA_INVALID;
+        NET_IP6: return roa_check(dn42_roa6, net, bgp_path.last_nonaggregated) = ROA_INVALID;
+        else:    return false;
+    }
+}
+
+# Strict check (valid only)
+function dn42_rpki_strict_check_failed() {% if new_bird %}-> bool{% endif %} {
+    case net.type {
+        NET_IP4: return roa_check(dn42_roa4, net, bgp_path.last_nonaggregated) != ROA_VALID;
+        NET_IP6: return roa_check(dn42_roa6, net, bgp_path.last_nonaggregated) != ROA_VALID;
+        else:    return false;
+    }
+}
+
+{% else %}
+
+function dn42_rpki_soft_check_failed() {% if new_bird %}-> bool{% endif %} {
+    # No external routes - no check needed
+    return false;
+}
+
+function dn42_rpki_strict_check_failed() {% if new_bird %}-> bool{% endif %} {
+    # No external routes - no check needed
+    return false;
+}
+
+{% endif %}

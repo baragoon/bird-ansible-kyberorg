@@ -1,0 +1,34 @@
+define KLAB_IPV4_VALID = [
+    23.190.24.0/24{26,32},  # Main Network
+    254.23.0.0/17{18,24}   # Internal Net
+];
+
+define KLAB_IPV6_VALID = [
+    2602:f7ff::/47{48,128}, # Main Network
+    2602:f7ff:6::/48,       # IPv6-only VMs
+    2602:f7ff:30::/44       # Klusters
+];
+
+function is_valid_klab_route() {% if new_bird %}-> bool{% endif %} {
+    if (net.type = NET_IP4) then {
+        return net ~ KLAB_IPV4_VALID;
+    } else {
+        return net ~ KLAB_IPV6_VALID;
+    }
+}
+
+function accept_ibgp_routes() {
+  if is_valid_klab_route() then {
+    _accept("Valid iBGP Route");
+    int my_asn = my_asn();
+    {% if two_byte_asn %}
+    if (my_asn, my_asn) !~ bgp_community then {
+      bgp_community.add((my_asn, my_asn));
+    }
+    {% else %}
+    if (my_asn, my_asn, my_asn) !~ bgp_large_community then {
+      bgp_large_community.add((my_asn,  my_asn, my_asn));
+    } 
+    {% endif %}
+  }
+}

@@ -1,0 +1,35 @@
+- name: Install bird (ArchLinux)
+  pacman:
+    name: bird
+    state: present
+  when: ansible_distribution == 'Archlinux'
+
+# Proxmox/Debian installation is broken - setup by hand instead
+
+- name: Define bird main config location (ArchLinux)
+  set_fact:
+    bird_main_config: "/etc/{{ bird_conf_name }}"
+    new_bird: True
+  when: ansible_distribution == 'Archlinux'
+
+- name: Define bird main config location (Debian/Proxmox)
+  set_fact:
+    bird_main_config: "{{ bird_dir }}/{{ bird_conf_name }}"
+    new_bird: True
+  when: ansible_distribution == 'Debian'
+
+- name: Ensure that directory is created
+  file:
+    path: "{{ bird_dir }}"
+    state: directory
+
+- name: Copy public functions file
+  copy:
+    src: envvars
+    dest: "{{ bird_dir }}/envvars"
+  when: ansible_distribution == 'Debian'
+
+- name: Ensure that peers directory is created
+  file:
+    path: "{{ bird_dir }}/peers"
+    state: directory

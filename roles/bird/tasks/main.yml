@@ -1,0 +1,18 @@
+- when: bird_enabled
+  block:
+
+    - name: Setup
+      include_tasks: setup.yml
+
+    - name: Set ASN Type
+      set_fact:
+        two_byte_asn: "{{ inet_asn <= 65535 }}"
+
+    - name: Create configs
+      include_tasks: configs.yml
+
+    - name: Enable and run daemon
+      systemd:
+        name: bird
+        state: started
+        enabled: true

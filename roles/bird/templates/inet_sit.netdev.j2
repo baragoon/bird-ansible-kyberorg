@@ -1,0 +1,12 @@
+[NetDev]
+Name=sit_{{ item.name }}
+Kind=sit
+
+[Link]
+MTUBytes={{ item.mtu }}
+
+[Tunnel]
+Local={{ item.local_addr }}
+Remote={{ item.remote_addr }}
+TTL={{ item.ttl }}
+Independent=true

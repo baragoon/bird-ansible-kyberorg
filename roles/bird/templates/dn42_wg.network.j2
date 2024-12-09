@@ -1,0 +1,52 @@
+[Match]
+Name=wg_{{ item.name }}
+
+[Network]
+DHCP=no
+IPv6AcceptRA=false
+IPForward=yes
+IPv4ReversePathFilter=no  # required if sysctl item `net.ipv4.conf.default.rp_filter` is not 0
+#DNS=172.20.0.53 172.23.0.53 fd42:d42:d42:53::1 fd42:d42:d42:54::1
+DNS=172.20.194.242 172.20.194.250 fd00:bee5:33ca:200::53 fd00:bee5:33ca:300::53
+Domains=~dn42 ~20.172.in-addr.arpa ~21.172.in-addr.arpa ~22.172.in-addr.arpa ~23.172.in-addr.arpa ~10.in-addr.arpa ~d.f.ip6.arpa
+
+# for networkd >= 244 KeepConfiguration stops networkd from
+# removing routes on this interface when restarting
+KeepConfiguration=yes
+
+# for networkd < 244 the CriticalConnection parameter achieves
+# the same thing
+[DHCP]
+CriticalConnection=true
+
+[Address]
+Address={{ dn42_ip6 }}/128
+Peer={{ item.wg_peer_ipv6 }}/128
+{% if item.wg_peer_ll is defined %}
+
+# if using link local addresses for peering
+[Address]
+Address={{ dn42_ipv6_ll }}/64
+Peer={{ item.wg_peer_ll }}/64
+{% endif %}
+{% if item.wg_peer_ipv4 is defined %}
+
+# IPv4 point to point
+[Address]
+Address={{ dn42_ip4 }}/32
+Peer={{ item.wg_peer_ipv4 }}/32
+{% endif %}
+{% if item.wg_peer_ipv6_prefix is defined %}
+
+[Route]
+Gateway={{ item.wg_peer_ipv6 }}
+Destination={{ item.wg_peer_ipv6_prefix }}
+GatewayOnLink=yes
+{% endif %}
+{% if item.wg_peer_ipv4_prefix is defined %}
+
+[Route]
+Gateway={{ item.wg_peer_ipv4 }}
+Destination={{ item.wg_peer_ipv4_prefix }}
+GatewayOnLink=yes
+{% endif %}

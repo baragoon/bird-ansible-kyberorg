@@ -1,0 +1,196 @@
+ansible_ssh_host: 127.0.0.1
+ansible_ssh_port: 22
+host_name: Host
+
+rtr_server: rtr.47272.net
+rtr_server_port: 3323
+
+host_dummy_ifaces: []
+
+hardcoded_routes4:
+  - { net: 172.20.194.240/29, gw: 172.20.194.241 }
+  - { net: 172.20.194.248/29, gw: 172.20.194.249 }
+
+hardcoded_routes6:
+  - { net: fd00:bee5:33ca:200::/56, gw: fd00:bee5:33ca:200::241 }
+  - { net: fd00:bee5:33ca:300::/56, gw: fd00:bee5:33ca:300::249 }
+
+has_inet_peers: True
+has_ibgp_peers: False
+
+inet_location_comm: GEO_EU
+
+bird_devices: []
+
+bird_set_server_src: True
+bird_src4: 127.0.0.1
+bird_src6: 2a06:de06:e669:127::1
+
+bird_inet_default_route: False
+dn42_default_route: False
+
+klab_host_only_routes4: []
+
+klab_host_only_routes6:
+  - { net: 2a0a:6044:3::1/128, gw: fe80::268a:7ff:fe9e:9aec%ens18 }
+
+path0_table: path0_table
+has_dn42_peers: True
+dn42_wg_interface_private_key: "{{ common_dn42_wg_interface_private_key }}"
+dn42_ip4: 172.20.194.233
+dn42_ip6: fd00:bee5:33ca:100::233
+dn42_ipv6_ll: fe80::2158:87:3
+dn42_node_routes4: 172.20.194.232/29
+dn42_node_routes6: fd00:bee5:33ca:100::/56
+inet_node_routes6:
+  - { net: 2a06:de06:e669::/48, asn: 215887, dev: lo }
+
+inet_wg_tunnels:
+  - name: ifog_tun
+    wg_interface_port: 51869
+    wg_interface_priv_key: "{{ ifog_tun_wg_interface_priv_key }}"
+    wg_interface_ipv6: 2a0c:9a40:a001::1ca/126
+    wg_peer_pub_key: "W0pI832mL5u7JzJjiE68dyS95mIGBDqGgSxSZromEGY="
+    wg_peer_endpoint: 193.148.248.18
+    wg_peer_endpoint_port: 51869
+    wg_peer_ipv6: 2a0c:9a40:a001::1c9/126
+    wg_peer_keepalive: 60
+
+inet_sit_tunnels:
+  - name: sb
+    local_addr: 118.91.184.12
+    remote_addr: 185.102.84.248
+    tunnel_addr: 2a09:4c0:fe0:4af::2/64
+    peer_addr: 2a09:4c0:fe0:4af::1/64
+    ttl: 255
+#    mtu: 1232
+    mtu: 1280
+
+dn42_wg_tunnels:
+  - name: chr_am02
+    wg_interface_port: 31732
+    wg_peer_pub_key: "q79LV9mls2qbrfRR/veRVFxOhAYrGqvaDZlIKHTy6Do="
+    wg_peer_endpoint: 193.148.248.151
+    wg_peer_endpoint_port: 15887
+    wg_peer_ipv6: fd42:4242:1732:c000::152
+    wg_peer_ll: fe80::abbf:4b57:d9a5:b36a
+    wg_peer_ipv4: 172.23.32.152
+    wg_peer_keepalive: 10
+
+  - name: chr_fr01
+    wg_interface_port: 11732
+    wg_peer_pub_key: "Q26p3AtJeoYR5mLCKyA6gFaKeVfjb/y2WJWYu9HlinQ="
+    wg_peer_endpoint: 193.148.249.129
+    wg_peer_endpoint_port: 15887
+    wg_peer_ipv6: fd42:4242:1732:4000::136
+    wg_peer_ll: fe80::436e:a9dc:b49:7a86
+    wg_peer_ipv4: 172.23.32.136
+    wg_peer_keepalive: 10
+
+  - name: chr_lo01
+    wg_interface_port: 41732
+    wg_peer_pub_key: "TAlB3+DryQylSYIqaSNwm5H+PhjV7Fh0ZOFAbKXGwnk="
+    wg_peer_endpoint: 45.134.88.134
+    wg_peer_endpoint_port: 15887
+    wg_peer_ipv6: fd42:4242:1732::128
+    wg_peer_ll: fe80::4c09:41df:e0eb:c90c
+    wg_peer_ipv4: 172.23.32.128
+    wg_peer_keepalive: 10
+
+  - name: chr_zu02
+    wg_interface_port: 21732
+    wg_peer_pub_key: "cZ9AuG3qgciro/OkOI9xL4F9CeK9GwesQmWUP2Ke13E="
+    wg_peer_endpoint: 45.136.137.1
+    wg_peer_endpoint_port: 15887
+    wg_peer_ipv6: fd42:4242:1732:8000::144
+    wg_peer_ll: fe80::719f:40b8:6dea:81c8
+    wg_peer_ipv4: 172.23.32.144
+    wg_peer_keepalive: 10
+
+  - name: max
+    wg_interface_port: 15887
+    wg_peer_pub_key: "/wG+5TMC6FH1SrC5KYpvuuc/iYSCr0gsjMNPHNZ0LAA="
+    wg_peer_endpoint: 94.158.85.230
+    wg_peer_endpoint_port: 15887
+    wg_peer_ipv6: fd00:bee5:33ca:200::241
+    wg_peer_ipv4: 172.20.194.241
+    wg_peer_keepalive: 10
+
+  - name: eti
+    wg_interface_port: 25887
+    wg_peer_pub_key: "VfemZPkVaohLngx56qt8FYxTZ8JhtlGQHeLgaPlVyi8="
+    wg_peer_endpoint: 194.88.153.231
+    wg_peer_endpoint_port: 15887
+    wg_peer_ipv6: fd00:bee5:33ca:300::249
+    wg_peer_ipv4: 172.20.194.249
+    wg_peer_keepalive: 10
+
+klab_peers: []
+
+inet_upstreams:
+  - name: hyehost
+    protocol: "v6"
+    type: "TYPE_INET"
+    description: "HyeHost"
+    local: { ip: "2a0a:6044:3:12::1" }
+    neighbor: { ip: "2a0a:6044:3::1", asn: 47272 }
+    set_multihop: True
+
+  - name: ifog_tun
+    protocol: "v6"
+    type: "TYPE_INET"
+    description: "iFog tunnel"
+    local: { ip: "2a0c:9a40:a001::1ca" }
+    neighbor: { ip: "2a0c:9a40:a001::1c9", asn: 209533 }
+    bgp_local_pref: 90
+
+  - name: sb_tun
+    protocol: "v6"
+    type: "TYPE_INET"
+    description: "SecureBit tunnel"
+    local: { ip: "2a09:4c0:fe0:4af::2" }
+    neighbor: { ip: "2a09:4c0:fe0:4af::1", asn: 58057 }
+    bgp_local_pref: 80
+
+dn42_peers:
+  - name: chr_am02
+    protocol: "v6"
+    type: "TYPE_DN42"
+    description: "am02"
+    local: { ip: "fe80::2158:87:3" }
+    neighbor: { nexthop: "172.23.32.152", ip: "fe80::abbf:4b57:d9a5:b36a%wg_chr_am02", asn: 4242421732 }
+
+  - name: chr_fr01
+    protocol: "v6"
+    type: "TYPE_DN42"
+    description: "fr01"
+    local: { ip: "fe80::2158:87:3" }
+    neighbor: { nexthop: "172.23.32.136", ip: "fe80::436e:a9dc:b49:7a86%wg_chr_fr01", asn: 4242421732 }
+
+  - name: chr_lo01
+    protocol: "v6"
+    type: "TYPE_DN42"
+    description: "lo01"
+    local: { ip: "fe80::2158:87:3" }
+    neighbor: { nexthop: "172.23.32.128", ip: "fe80::4c09:41df:e0eb:c90c%wg_chr_lo01", asn: 4242421732 }
+
+  - name: chr_zu02
+    protocol: "v6"
+    type: "TYPE_DN42"
+    description: "zu02"
+    local: { ip: "fe80::2158:87:3" }
+    neighbor: { nexthop: "172.23.32.144", ip: "fe80::719f:40b8:6dea:81c8%wg_chr_zu02", asn: 4242421732 }
+
+  - name: max
+    protocol: "v6"
+    type: "TYPE_DN42"
+    description: "eti"
+    local: { ip: "fd00:bee5:33ca:100::233" }
+    neighbor: { nexthop: "172.20.194.241", ip: "fd00:bee5:33ca:200::241", asn: 215887 }
+
+  - name: eti
+    protocol: "v6"
+    type: "TYPE_DN42"
+    description: "eti"
+    local: { ip: "fd00:bee5:33ca:100::233" }
+    neighbor: { nexthop: "172.20.194.249", ip: "fd00:bee5:33ca:300::249", asn: 215887 }

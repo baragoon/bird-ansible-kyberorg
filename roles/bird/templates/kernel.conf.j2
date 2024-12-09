@@ -1,0 +1,100 @@
+filter import_from_kernel {
+  if is_default_route(TYPE_INET) then {
+    reject;
+  }
+  accept;
+};
+
+filter export_to_kernel {
+  # Accept hardcoded routes
+  if proto = "hardcoded_routes_v4" then {
+    krt_metric = 1;
+#    accept "[Export V](hardcoded4) net ", net, " Exported to kernel table.";
+    accept;
+  }
+  if proto = "hardcoded_routes_v6" then {
+    krt_metric = 1;
+#    accept "[Export V](hardcoded6) net ", net, " Exported to kernel table.";
+    accept;
+  }
+  # Accept non-aggregated route
+
+  if is_aggregated_route() && !is_default_route(TYPE_INET) then {
+    dest = RTD_BLACKHOLE;
+#    accept "[Export V](blackhole) net ", net, " Blackholed.";
+    accept;
+  }
+
+  if is_host_only_route() then {
+#    accept "[Export V](host-only) net ", net, " Allowed Host-only route.";
+    accept;
+  }
+
+  # Other Static - reject
+  if source = RTS_STATIC then reject; # No reason to have it in kernel table
+  # Anycast - reject
+  if is_anycast() then reject; # Anycast is local for every system
+
+  if is_default_route(TYPE_INET) then reject;
+  #if is_default_route(TYPE_INET) then {
+  #  {% if bird_set_server_src %}
+  #  if net.type = NET_IP4 then {
+  #    krt_prefsrc = {{ bird_src4 }};
+  #  } else {
+  #    krt_prefsrc = {{ bird_src6 }};
+  #  }
+  #  {% endif %}
+  #
+
+  #  if bgp_local_pref = 123 then krt_metric = 88; # Metric less - better
+  #  if bgp_local_pref = 88 then krt_metric = 123; # bgp_local_pref more - better
+  #  accept "[Export V](", proto ,") Default route exported to kernel table.";
+  #}
+
+#  if is_default_route(TYPE_DN42) then accept "[Export V](", proto, ") Default route exported to kernel table.";
+  if is_default_route(TYPE_DN42) then accept "[Export V](", proto, ") Default route exported to kernel table.";
+
+  # DN42 routes
+  if is_valid_net(TYPE_DN42) then {
+    if net.type = NET_IP4 then {
+      krt_prefsrc = {{ dn42_ip4 }};
+    } else {
+      krt_prefsrc = {{ dn42_ip6 }};
+    }
+    krt_metric = 42;
+#    accept "[Export V](", proto ,") net ", net, " Exported to kernel table.";
+    accept;
+  } else {
+    {% if bird_set_server_src %}
+    if net.type = NET_IP4 then {
+      krt_prefsrc = {{ bird_src4 }};
+    } else {
+      krt_prefsrc = {{ bird_src6 }};
+    }
+    {% endif %}
+    krt_metric = 51; # should be lower, then WG iface (256)
+    accept;
+  }
+};
+
+protocol kernel {
+    scan time 60;
+    metric 0;
+
+    ipv4 {
+        import filter import_from_kernel;
+        export filter export_to_kernel;
+    };
+    merge paths on;
+}
+
+protocol kernel {
+    scan time 60;
+    metric 0;
+
+    ipv6 {
+        import all; # We are okay with IPv6 default
+        export filter export_to_kernel;
+    };
+    merge paths on;
+}

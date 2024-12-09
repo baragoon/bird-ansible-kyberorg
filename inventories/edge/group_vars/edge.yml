@@ -1,0 +1,84 @@
+### Globals ###
+ansible_user: root
+
+global_dummy_ifaces: []
+
+## Bird stuff
+bird_enabled: True
+bird_dir: /etc/bird
+bird_conf_name: bird.conf
+inet_asn: 215887
+dn42_asn: 215887
+
+inet_anycast4: []
+inet_anycast6: []
+
+dn42_anycast4: []
+#  - { net: 172.23.231.0/28, dev: lo }
+dn42_anycast6: []
+#  - { net: fd42:2c:500::/48, dev: lo }
+
+rtr_server: 23.0.0.179
+
+###############
+# Host specific
+###############
+ansible_ssh_host: 1.2.3.4
+ansible_ssh_port: 22
+host_name: SomeHost
+
+# Ifaces
+inet4_device: eth0
+inet4_addr: 1.2.3.4
+inet4_gateway: 1.2.3.1 # Override it at host level
+inet6_addr: 2001:db8::123 # Override it at host level
+inet6_gateway: 2001:db8::1 # Override it at host level
+host_dummy_ifaces: [] # Override if needed
+
+# Host src addr
+dn42_ip4: 172.23.231.0
+dn42_ip6: fd42:2c:500::0
+
+# Harcoded routes
+hardcoded_routes4: [] # Harcoded routes to BGP peers 
+hardcoded_routes6: [] # Harcoded routes to BGP peers 
+
+has_inet_peers: False
+has_dn42_peers: False
+has_ibgp_peers: True
+
+bird_devices: [] # Device we scan and get networks from
+
+# Use Server Src
+bird_set_server_src: False
+bird_src4: 23.0.0.0
+bird_src6: 2001:db8:db8::db8
+
+inet_location_comm: GEO_EU
+
+bird_inet_default_route: False # Set to true if bird should send default, but don't have it
+inet_node_routes4: [] # Our /24 networks announced from some locations
+inet_node_routes6: [] # Our /48 networks
+
+klab_ibgp_routes4: [] # argreggated routes for iBGP
+klab_ibgp_routes6: [] # argreggated routes for iBGP
+klab_host_only_routes4: [] # non-argreggated host-only routes
+klab_host_only_routes6: [] # non-argreggated host-only routes
+
+dn42_default_route: False # Set to true if bird should send default, but don't have it
+dn42_node_routes4: [] # DN42 prefixes from current node (currently empty as we use anycast)
+dn42_node_routes6: [] # DN42 prefixes from current node (currently empty as we use anycast)
+
+klab_peers: []  # KLab Peers
+
+inet_upstreams: [] # Upstreams
+inet_rs: []        # Route Servers
+inet_peers: [] # Peers
+inet_downstreams: [] # Downstreams with autofilters
+inet_whitestreams: [] # Downsteams with whitelisting
+inet_rc: []        # Route Collectors
+dn42_peers: []
+
+path0_table: []
+gre_tunnels: []
+inet_tunnels: []

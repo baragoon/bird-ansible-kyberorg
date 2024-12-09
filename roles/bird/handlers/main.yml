@@ -1,0 +1,7 @@
+- name: Restart systemd-networkd
+  systemd:
+    name: systemd-networkd
+    state: restarted
+
+- name: Notify Bird about changes
+  shell: birdc configure
