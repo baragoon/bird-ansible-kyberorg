@@ -177,7 +177,7 @@
     src: peers/dn42_peer.conf.j2
     dest: "{{ bird_dir }}/peers/dn42_peer_{{ item.name }}_{{ item.protocol }}.conf"
   loop: "{{ dn42_peers }}"
-  notify: Notify Bird about changes
+#  notify: Notify Bird about changes
 
 - name: Generate Downstream Automaticnyj (Inet Automatic-fitering downstream) configs
   template:

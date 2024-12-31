@@ -4,7 +4,7 @@
   serial: 1
   gather_facts: yes
   any_errors_fatal: false
-  vars_files: ../secrets.yml
+  vars_files: ../secrets.yaml
   pre_tasks:
     - name: Assert that host has bird_dir
       assert:

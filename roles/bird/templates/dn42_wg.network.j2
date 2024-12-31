@@ -21,7 +21,11 @@ CriticalConnection=true
 
 [Address]
 Address={{ dn42_ip6 }}/128
+{% if "chr" in item.name %}
+#Peer={{ item.wg_peer_ipv6 }}/128
+{% else %}
 Peer={{ item.wg_peer_ipv6 }}/128
+{% endif %}
 {% if item.wg_peer_ll is defined %}
 
 # if using link local addresses for peering
