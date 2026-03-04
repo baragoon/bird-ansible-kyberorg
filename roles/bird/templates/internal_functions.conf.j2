@@ -130,7 +130,7 @@ function remove_private_asn(int as_type) {
 
 function clean_own_communities() {
     int my_asn = my_asn();
-    bgp_large_community.delete([(my_asn, *, *)]);
+    bgp_large_community.delete([(my_asn, 0..4294967295, 0..4294967295)]);
 }
 
 function honour_graceful_shutdown() {
