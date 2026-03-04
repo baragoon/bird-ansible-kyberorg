@@ -141,14 +141,7 @@ function remove_private_asn(int as_type) {
 }
 
 function clean_own_communities() {
-    int my_asn = my_asn();
-    bgp_large_community.delete([(my_asn, INFO_OWN, INFO_OWN)]);
-    bgp_large_community.delete([(my_asn, INFO_DOWNSTREAM, INFO_DOWNSTREAM)]);
-    bgp_large_community.delete([(my_asn, INFO_PEER, INFO_PEER)]);
-    bgp_large_community.delete([(my_asn, INFO_IXP_RS, INFO_IXP_RS)]);
-    bgp_large_community.delete([(my_asn, INFO_UPSTREAM, INFO_UPSTREAM)]);
-    bgp_large_community.delete([(my_asn, ACTION_NO_EXPORT, ACTION_NO_EXPORT)]);
-    bgp_large_community.delete([(my_asn, ACTION_NO_EXPORT, 64515)]);
+    ;
 }
 
 function honour_graceful_shutdown() {
