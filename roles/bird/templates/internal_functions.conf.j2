@@ -141,8 +141,7 @@ function remove_private_asn(int as_type) {
 }
 
 function clean_own_communities() {
-    # Community cleanup disabled for compatibility
-    return;
+    # No-op: large community delete compatibility workaround
 }
 
 function honour_graceful_shutdown() {
