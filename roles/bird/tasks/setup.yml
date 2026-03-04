@@ -18,6 +18,12 @@
     new_bird: True
   when: ansible_distribution == 'Debian'
 
+- name: Define bird main config location (default)
+  set_fact:
+    bird_main_config: "{{ bird_dir }}/{{ bird_conf_name }}"
+    new_bird: True
+  when: ansible_distribution not in ['Archlinux', 'Debian']
+
 - name: Ensure that directory is created
   file:
     path: "{{ bird_dir }}"
