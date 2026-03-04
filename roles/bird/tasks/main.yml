@@ -11,6 +11,12 @@
     - name: Create configs
       include_tasks: configs.yml
 
+    - name: Validate bird configuration
+      command: bird -p -c {{ bird_main_config }}
+      register: bird_config_check
+      changed_when: false
+      failed_when: bird_config_check.rc != 0
+
     - name: Enable and run daemon
       systemd:
         name: bird
