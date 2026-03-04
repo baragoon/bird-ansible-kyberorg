@@ -62,9 +62,9 @@ function reject_out_of_bound_route() {
 
 function reject_invalid_rpki(int check_type) {
     if (check_type = CHECK_TYPE_SOFT) then {
-        if rpki_soft_check_failed(as_type()) then _reject("Invalid RPKI");
+        if (rpki_soft_check_failed(as_type()) = 1) then _reject("Invalid RPKI");
     } else if (check_type = CHECK_TYPE_STRICT) then {
-        if rpki_strict_check_failed(as_type()) then _reject("Invalid or not found RPKI");
+        if (rpki_strict_check_failed(as_type()) = 1) then _reject("Invalid or not found RPKI");
     } else {
         print "No such check type: ", check_type, " defined. Check check your constants."; 
     }

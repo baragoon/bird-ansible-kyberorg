@@ -111,16 +111,28 @@ function bad_prefix_len(int as_typ) {% if new_bird %}-> bool{% endif %} {
     return false;
 }
 
-function rpki_soft_check_failed(int as_type) {% if new_bird %}-> bool{% endif %} {
-    if (as_type = TYPE_DN42) then return dn42_rpki_soft_check_failed();
-    if (as_type = TYPE_INET) then return inet_rpki_soft_check_failed();
-    return false;
+function rpki_soft_check_failed(int route_type) {% if new_bird %}-> int{% endif %} {
+    if (route_type = TYPE_DN42) then {
+        if dn42_rpki_soft_check_failed() then return 1;
+        return 0;
+    }
+    if (route_type = TYPE_INET) then {
+        if inet_rpki_soft_check_failed() then return 1;
+        return 0;
+    }
+    return 0;
 }
 
-function rpki_strict_check_failed(int as_type) {% if new_bird %}-> bool{% endif %} {
-    if (as_type = TYPE_DN42) then return dn42_rpki_strict_check_failed();
-    if (as_type = TYPE_INET) then return inet_rpki_strict_check_failed();
-    return false;
+function rpki_strict_check_failed(int route_type) {% if new_bird %}-> int{% endif %} {
+    if (route_type = TYPE_DN42) then {
+        if dn42_rpki_strict_check_failed() then return 1;
+        return 0;
+    }
+    if (route_type = TYPE_INET) then {
+        if inet_rpki_strict_check_failed() then return 1;
+        return 0;
+    }
+    return 0;
 }
 
 # Actions functions
